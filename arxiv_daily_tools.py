@@ -5,13 +5,15 @@
 @Time    :   2023/03/23 12:19:44
 @Author  :   Weihao Xia (xiawh3@outlook)
 @Version :   v2.0 (v1.0 2022/11/02 12:19:44)
-@Desc    :   This script converts arxiv papers (given id or title) into the following markdown format.
-            **Here is the Paper Name.**<br>
-            *[Author 1](homepage), Author 2, and Author 3.*<br>
-            Conference or Journal Year. [[PDF](link)] [[Project](link)] 
+@Desc    :   This script is used to query arxiv papers and download pdfs.
+             It converts arxiv papers (given id or title) into the following markdown format.
+             **Here is the Paper Name.**<br>
+             *[Author 1](homepage), Author 2, and Author 3.*<br>
+             Publication Year. [[PDF](link)] [[Project](link)] 
 '''
 
 import re
+import os
 from urllib import request
 from urlextract import URLExtract
 from PyPDF2 import PdfFileReader
@@ -19,6 +21,9 @@ from tqdm import trange
 
 
 class Information():
+    '''
+    get information from arxiv
+    '''
     def __init__(self, query_id=None, query_title=None):
         if query_id:
             self.query_url = f'http://export.arxiv.org/api/query?id_list={query_id}'
@@ -34,6 +39,9 @@ class Information():
         self.pdf_url = f'https://arxiv.org/pdf/{self.id}'
 
     def _re_process(self):
+        '''
+        extract information from the xml file
+        '''
         id_version = re.findall(r'<id>http://arxiv.org/abs/(.*)</id>', self.strInf)[0]
         id = id_version[:-2]
         title = re.findall(r'<title>([\s\S]*)</title>', self.strInf)[0]
@@ -42,6 +50,7 @@ class Information():
         authors = re.findall(r'<author>\s*<name>(.*)</name>\s*</author>', self.strInf)
         year = re.findall(r'<published>(\d{4}).*</published>', self.strInf)[0]
         comment = re.findall(r'<arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">([\s\S]*?)</arxiv:comment>', self.strInf)
+
         urls = []
         if comment:
             comment = comment[0].strip()
@@ -51,29 +60,39 @@ class Information():
         return id_version, id, title, authors, year, comment, urls
 
     def _clean_title(self, title):
+        '''
+        remove punctuations in title
+        '''
         return re.sub(r'[^\w\s-]', '', title).strip()
 
     def get_publish(self):
-        # Read conference names from a text file
+        '''
+        get the publication information
+        '''
+        # read conference names from a text file
         with open('conf_list.txt') as f:
             conf_list = [line.strip() for line in f]
         conf_regex = '|'.join(conf_list)
 
         publish_regex = fr'({conf_regex}).*?\d{{4}}'
-        publish = re.findall(publish_regex, self.strInf)
+        publish = f'<arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">[\s\S]*({publish_regex})[\s\S]*</arxiv:comment>'
+        publish = re.findall(publish, self.strInf)
 
         if publish:
-            publish = publish[0].strip()
-            # Fix formats like CVPR2020 -> CVPR 2020
-            publish = re.sub(r"(?<=\w)(?=(?:\w\w)+$)", " ", publish)
+            # extract publish information e.g. cvpr 2021 from comment
+            publish = publish[0][0]
         else:
-            # Default to arXiv + year
+            # arxiv + year
             publish = f'arXiv {self.year}'
 
         self.publish = publish
 
     def write_notes(self):
+        '''
+        write notes in markdown format
+        '''
         self.get_publish()
+        # render the title, authors, and publication info
         title_url = f'**{self.title}.**<br>'
         authors_str = ', '.join(self.authors)
         authors = f'*{authors_str}.*<br> '
@@ -85,6 +104,15 @@ class Information():
             for i in range(len(self.urls)):
                 print (f'[[Link]({self.urls[i]})]')
         print('\n')
+
+    def download(self):
+        '''
+        download all pdfs in the list
+        '''
+        save_path = 'downloads'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        request.urlretrieve(self.pdf_url, f'{save_path}/{self.year}_{self.title_sub}.pdf')
 
 if __name__ == '__main__':
 
@@ -105,3 +133,4 @@ if __name__ == '__main__':
             pass
         information = Information(query_id=idx)
         information.write_notes()
+        # information.download() 
