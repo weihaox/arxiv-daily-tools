@@ -22,7 +22,7 @@ from tqdm import trange
 
 class Information():
     '''
-    get information from arxiv
+    get information from arxiv api
     '''
     def __init__(self, query_id=None, query_title=None):
         if query_id:
@@ -33,7 +33,7 @@ class Information():
 
         self.strInf = request.urlopen(self.query_url).read().decode('utf-8')
         self.id_version, self.id, self.title, self.authors, self.year, self.comment, self.urls = self._re_process()
-        self.title_sub = self._clean_title(self.title)
+        self.title = self._clean_title(self.title)
 
         self.abs_url = f'https://arxiv.org/abs/{self.id}'
         self.pdf_url = f'https://arxiv.org/pdf/{self.id}'
@@ -45,8 +45,6 @@ class Information():
         id_version = re.findall(r'<id>http://arxiv.org/abs/(.*)</id>', self.strInf)[0]
         id = id_version[:-2]
         title = re.findall(r'<title>([\s\S]*)</title>', self.strInf)[0]
-        title = re.sub(r'\n\s', '', title) # remove '\n'
-        title_sub = re.sub(r'[^\w\s-]', '', title) # remove punctuations  
         authors = re.findall(r'<author>\s*<name>(.*)</name>\s*</author>', self.strInf)
         year = re.findall(r'<published>(\d{4}).*</published>', self.strInf)[0]
         comment = re.findall(r'<arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">([\s\S]*?)</arxiv:comment>', self.strInf)
@@ -61,9 +59,15 @@ class Information():
 
     def _clean_title(self, title):
         '''
-        remove punctuations in title
+        remove certain punctuations in the title; and
+        capitalize the first letter of each word (except for prepositions and acronyms)
         '''
-        return re.sub(r'[^\w\s-]', '', title).strip()
+        prepositions = ['about', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'nor', 'of', 'on', 'or', 'to', 'with']
+        title = re.sub(r'\n\s', '', title) # remove '\n' and the following spaces
+        title = re.sub(r'\b(?!(' + '|'.join(prepositions) + r'))[a-z]', lambda x: x.group(0).upper(), title)
+        # title = [word.capitalize() if word not in prepositions else word for word in title.split()]
+        # title = ' '.join(title) # this will undesirably change 'Aadf-GAN' to 'Aadf-Gan'.
+        return title
 
     def get_publish(self):
         '''
@@ -79,7 +83,7 @@ class Information():
         publish = re.findall(publish, self.strInf)
 
         if publish:
-            # extract publish information e.g. cvpr 2021 from comment
+            # extract publish information (e.g. cvpr 2021) from the comment
             publish = publish[0][0]
         else:
             # arxiv + year
@@ -89,7 +93,7 @@ class Information():
 
     def write_notes(self):
         '''
-        write notes in markdown format
+        define the markdown format and write notes
         '''
         self.get_publish()
         # render the title, authors, and publication info
@@ -107,12 +111,13 @@ class Information():
 
     def download(self):
         '''
+        define the download path and title, and
         download all pdfs in the list
         '''
         save_path = 'downloads'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        request.urlretrieve(self.pdf_url, f'{save_path}/{self.year}_{self.title_sub}.pdf')
+        request.urlretrieve(self.pdf_url, f'{save_path}/{self.year}_{self.title}.pdf')
 
 if __name__ == '__main__':
 
