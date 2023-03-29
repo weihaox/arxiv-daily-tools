@@ -4,12 +4,17 @@ This script converts arxiv papers (given id or title) into a certain markdown [f
 
 ## usage
 
-Please edit `paper_list.txt` and add arxiv ids of interested papers. 
+If you find some interesting papers on arxiv today and want to add them to your paper list, please add their arxiv ids to `paper_list.txt` and run the following command.
 
 ```Shell
 python arxiv_daily_tools.py
 ```
 
+If you have a papers.md and would like to update the infromation, please use the following command.
+
+```Shell
+python update_info.py
+```
 ## related 
 
 Thanks to [yzy1996](https://github.com/yzy1996) for sharing the [code](https://github.com/yzy1996/Python-Code/blob/master/Python%2BarXiv/id2md.py).
