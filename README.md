@@ -9,3 +9,7 @@ Please edit `paper_list.txt` and add arxiv ids of interested papers.
 ```Shell
 python arxiv_daily_tools.py
 ```
+
+## related 
+
+Thanks to [yzy1996](https://github.com/yzy1996) for sharing the [code](https://github.com/yzy1996/Python-Code/blob/master/Python%2BarXiv/id2md.py).
