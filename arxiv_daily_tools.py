@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 '''
 @File    :   arxiv_daily_tools.py
-@Time    :   2023/03/23 12:19:44
+@Time    :   2023/03/29 09:45:43
 @Author  :   Weihao Xia (xiawh3@outlook)
-@Version :   v2.0 (v1.0 2022/11/02 12:19:44)
+@Version :   v3.0 2023/03/29 09:45:43 use feedparser to remove regular expressions
+             v2.0 2023/03/23 12:19:44 clean up the code
+             v1.0 2022/11/02 12:19:44
 @Desc    :   This script is used to query arxiv papers and download pdfs.
              It converts arxiv papers (given id or title) into the following markdown format.
              **Here is the Paper Name.**<br>
@@ -18,7 +20,7 @@ from urllib import request
 from urlextract import URLExtract
 from PyPDF2 import PdfFileReader
 from tqdm import trange
-
+import feedparser
 
 class Information():
     '''
@@ -31,42 +33,40 @@ class Information():
             query_title = query_title.replace(' ', '+')
             self.query_url = f'https://export.arxiv.org/api/query?search_query=all:{query_title}&max_results=1'
 
-        self.strInf = request.urlopen(self.query_url).read().decode('utf-8')
-        self.id_version, self.id, self.title, self.authors, self.year, self.comment, self.urls = self._re_process()
-        self.title = self._clean_title(self.title)
+        self.data = request.urlopen(self.query_url).read().decode('utf-8')
+        self.abs_url, self.title, self.authors, self.year, self.comment, self.urls = self.get_arxiv_info()
+        self.title = self.clean_title(self.title)
 
-        self.abs_url = f'https://arxiv.org/abs/{self.id}'
-        self.pdf_url = f'https://arxiv.org/pdf/{self.id}'
+        self.pdf_url = self.abs_url.replace('abs', 'pdf')
 
-    def _re_process(self):
+    def get_arxiv_info(self):
         '''
-        extract information from the xml file
+        extract information
         '''
-        id_version = re.findall(r'<id>http://arxiv.org/abs/(.*)</id>', self.strInf)[0]
-        id = id_version[:-2]
-        title = re.findall(r'<title>([\s\S]*)</title>', self.strInf)[0]
-        authors = re.findall(r'<author>\s*<name>(.*)</name>\s*</author>', self.strInf)
-        year = re.findall(r'<published>(\d{4}).*</published>', self.strInf)[0]
-        comment = re.findall(r'<arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">([\s\S]*?)</arxiv:comment>', self.strInf)
+        feed = feedparser.parse(self.data)
+
+        title = feed.entries[0].title
+        authors = [author.name for author in feed.entries[0].authors]
+        abs_url = feed.entries[0].link # arxiv.org/abs/2103.11536v1
+        year = feed.entries[0].published.split('-')[0] # 2021-03-23T00:00:00Z -> 2021
+        comment = feed.entries[0].arxiv_comment
 
         urls = []
         if comment:
-            comment = comment[0].strip()
+            comment = comment.strip()
             extractor = URLExtract()
             urls = extractor.find_urls(comment)
 
-        return id_version, id, title, authors, year, comment, urls
+        return abs_url, title, authors, year, comment, urls
 
-    def _clean_title(self, title):
+    def clean_title(self, title):
         '''
         remove certain punctuations in the title; and
         capitalize the first letter of each word (except for prepositions and acronyms)
         '''
         prepositions = ['about', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'nor', 'of', 'on', 'or', 'to', 'with']
-        title = re.sub(r'\n\s', '', title) # remove '\n' and the following spaces
-        title = re.sub(r'\b(?!(' + '|'.join(prepositions) + r'))[a-z]', lambda x: x.group(0).upper(), title)
-        # title = [word.capitalize() if word not in prepositions else word for word in title.split()]
-        # title = ' '.join(title) # this will undesirably change 'Aadf-GAN' to 'Aadf-Gan'.
+        title = [word.capitalize() if word not in prepositions and word.islower() else word for word in title.split()]
+        title = ' '.join(title) # word.islower() is to prevent changing "Aadf-GAN" to "Aadf-Gan"
         return title
 
     def get_publish(self):
@@ -79,8 +79,8 @@ class Information():
         conf_regex = '|'.join(conf_list)
 
         publish_regex = fr'({conf_regex}).*?\d{{4}}'
-        publish = f'<arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">[\s\S]*({publish_regex})[\s\S]*</arxiv:comment>'
-        publish = re.findall(publish, self.strInf)
+        publish = f'[\s\S]*({publish_regex})[\s\S]*'
+        publish = re.findall(publish, self.comment)
 
         if publish:
             # extract publish information (e.g. cvpr 2021) from the comment
