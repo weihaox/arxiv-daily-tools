@@ -10,7 +10,7 @@ If you find some interesting papers on arxiv today and want to add them to your 
 python arxiv_daily_tools.py
 ```
 
-If you have a papers.md and would like to update the infromation, please use the following command.
+If you have a papers.md (like [this](https://github.com/weihaox/arxiv_daily_tools/blob/main/papers.md)) and would like to update some information, please use the following command.
 
 ```Shell
 python update_info.py
