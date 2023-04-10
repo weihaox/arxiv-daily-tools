@@ -17,4 +17,4 @@ python update_info.py
 ```
 ## related 
 
-Thanks to [yzy1996](https://github.com/yzy1996) for sharing the [code](https://github.com/yzy1996/Python-Code/blob/master/Python%2BarXiv/id2md.py).
+Thanks to [yzy1996](https://github.com/yzy1996) for sharing the [code](https://github.com/yzy1996/Python-Code/commit/9d76bd75cc4d6f3980b5c6ef8a20cedd92c0fa1b).

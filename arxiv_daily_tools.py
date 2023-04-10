@@ -49,7 +49,11 @@ class Information():
         authors = [author.name for author in feed.entries[0].authors]
         abs_url = feed.entries[0].link # arxiv.org/abs/2103.11536v1
         year = feed.entries[0].published.split('-')[0] # 2021-03-23T00:00:00Z -> 2021
-        comment = feed.entries[0].arxiv_comment
+        
+        try:
+            comment = feed.entries[0].arxiv_comment
+        except AttributeError:
+            comment = 'hello world!'
 
         urls = []
         if comment:
@@ -79,8 +83,8 @@ class Information():
         conf_regex = '|'.join(conf_list)
 
         publish_regex = fr'({conf_regex}).*?\d{{4}}'
-        publish = f'[\s\S]*({publish_regex})[\s\S]*'
-        publish = re.findall(publish, self.comment)
+        publish_regex = f'[\s\S]*({publish_regex})[\s\S]*'
+        publish = re.findall(publish_regex, self.comment)
 
         if publish:
             # extract publish information (e.g. cvpr 2021) from the comment
@@ -98,8 +102,8 @@ class Information():
         self.get_publish()
         # render the title, authors, and publication info
         title_url = f'**{self.title}.**<br>'
-        authors_str = ', '.join(self.authors)
-        authors = f'*{authors_str}.*<br> '
+        authors = ', '.join(self.authors)
+        authors = f'*{authors}.*<br> '
         publish = f'{self.publish}. [[PDF]({self.abs_url})]'
 
         print(f'{title_url}\n{authors}\n{publish}')
