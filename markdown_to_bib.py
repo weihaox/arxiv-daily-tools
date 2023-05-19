@@ -2,21 +2,15 @@
 # -*- coding: utf-8 -*-
 '''
 @File    :   markdown_to_bib.py
-@Time    :   2023/05/19 17:22:10
+@Time    :   2023/05/19 17:29:30
 @Author  :   Weihao Xia 
-@Version :   3.0
-@Desc    :   In this updated code, I added the generate_bbl function to generate 
-             the BBL file based on the parsed paper information. The generate_bbl 
-             function iterates over the parsed entries and constructs the BBL 
-             content with the required formatting. The BBL content is then written 
-             to the specified output file.
-             Make sure to provide the paths for the input Markdown file, 
-             output BibTeX file, and output BBL file when running the script.
+@Version :   4.0
+@Desc    :   In this updated version, I added a new argument --mode to specify the  
+             mode for saving the files. Mode 1 corresponds to saving the BibTeX file, 
+             and mode 2 corresponds to saving the BBL file. 
              To run the script and save the desired files, you can use the following command:
-             python markdown_to_bib_v2.py papers_updated.md  example_bib.bib example_bbl.bbl
+             python markdown_to_bib.py papers.md ./ --mode 1
 '''
-
-
 
 import re
 import feedparser
@@ -147,19 +141,26 @@ def generate_bbl(entries):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert academic papers in Markdown to BibTeX and BBL.')
     parser.add_argument('read_path', type=str, default='papers.md', help='path to the input Markdown file')
-    parser.add_argument('bib_file', type=str, default='example_bib.bib', help='path to the output BibTeX file')
-    parser.add_argument('bbl_file', type=str, default='example_bbl.bbl', help='path to the output BBL file')
+    parser.add_argument('output_dir', type=str, default='', help='directory to save the output files')
+    parser.add_argument('--mode', type=int, default=1, choices=[1, 2], help='mode: 1 for BibTeX, 2 for BBL')
     args = parser.parse_args()
 
     with open(args.read_path, 'r') as f:
         paper_info_strs = f.read().strip().split('\n\n')
 
     parsed_paper_info = [parse_paper_info(paper_info_str) for paper_info_str in paper_info_strs]
-    bibtex_entries = [generate_bib(info) for info in parsed_paper_info]
-    bbl_content = generate_bbl(parsed_paper_info)
 
-    with open(args.bib_file, 'w') as bib_file:
-        bib_file.write('\n'.join(bibtex_entries))
-
-    with open(args.bbl_file, 'w') as bbl_file:
-        bbl_file.write(bbl_content)
+    if args.mode == 1:
+        bibtex_entries = [generate_bib(info) for info in parsed_paper_info]
+        output_file = f"{args.output_dir}/example_bib.bib" if args.output_dir else "example_bib.bib"
+        with open(output_file, 'w') as bib_file:
+            bib_file.write('\n'.join(bibtex_entries))
+        print(f"BibTeX file saved at: {output_file}")
+    elif args.mode == 2:
+        bbl_content = generate_bbl(parsed_paper_info)
+        output_file = f"{args.output_dir}/example_bbl.bbl" if args.output_dir else "example_bbl.bbl"
+        with open(output_file, 'w') as bbl_file:
+            bbl_file.write(bbl_content)
+        print(f"BBL file saved at: {output_file}")
+    else:
+        print("Invalid mode. Please choose mode 1 for BibTeX or mode 2 for BBL.")
