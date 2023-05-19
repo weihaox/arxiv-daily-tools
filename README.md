@@ -15,6 +15,11 @@ If you have a papers.md (like [this](https://github.com/weihaox/arxiv_daily_tool
 ```Shell
 python update_info.py
 ```
+If you want to convert the markdown file to BibTeX (.bib) or BibLaTeX (.bbl) references, please use the following command.
+
+```Shell
+python markdown_to_bib.py papers.md ./ --mode 1 # mode 1 is for BibTeX, and mode 1 is for BibLaTeX
+```
 ## related 
 
 Thanks to [yzy1996](https://github.com/yzy1996) for sharing the [code](https://github.com/yzy1996/Python-Code/commit/9d76bd75cc4d6f3980b5c6ef8a20cedd92c0fa1b).
